@@ -1,0 +1,7 @@
+openpyxl
+pandas
+matplotlib
+seaborn
+jupyterlab
+tinvest
+lxml
