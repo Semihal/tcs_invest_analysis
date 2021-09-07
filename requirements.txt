@@ -1,3 +1,4 @@
+tqdm
 openpyxl
 pandas
 matplotlib
