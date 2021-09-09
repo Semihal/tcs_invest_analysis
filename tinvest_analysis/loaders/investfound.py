@@ -1,8 +1,6 @@
-import time
-import json
 import datetime as dt
 import time
-from typing import Optional, Dict
+from typing import Dict
 
 from tqdm import tqdm
 import requests
@@ -251,7 +249,7 @@ class InvestFounds:
 
 
 if __name__ == '__main__':
-    operations = pd.read_csv('../data/tinkoff/operations.csv')
+    operations = pd.read_csv('../../data/tinkoff/operations.csv')
     isin_list = operations.loc[operations['isin'].notna(), 'isin'].unique()
 
     client = InvestFounds(isin_list)

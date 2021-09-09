@@ -18,8 +18,8 @@ class Tinkoff:
             for account in payload.accounts
         }
 
-    def get_portfolio_currencies(self):
-        currencies = self.client.get_portfolio_currencies()\
+    def get_portfolio_currencies(self, broker_account_id: str):
+        currencies = self.client.get_portfolio_currencies(broker_account_id)\
             .payload\
             .currencies
         df = pd.DataFrame((
@@ -97,8 +97,8 @@ if __name__ == '__main__':
 
     client = Tinkoff(token=TOKEN)
     accounts = client.get_broker_accounts()
-    currencies = client.get_portfolio_currencies()
-    operations = client.get_operations(broker_account_id=accounts['TinkoffIis'])
+    currencies: pd.DataFrame = client.get_portfolio_currencies()
+    operations: pd.DataFrame = client.get_operations(broker_account_id=accounts['TinkoffIis'])
 
-    currencies.to_csv('../data/tinkoff/currencies.csv', header=True, encoding='utf-8')
-    operations.to_csv('../data/tinkoff/operations.csv', index=True, header=True, encoding='utf-8')
+    currencies.to_csv('../../data/tinkoff/currencies.csv', header=True, encoding='utf-8')
+    operations.to_csv('../../data/tinkoff/operations.csv', index=True, header=True, encoding='utf-8')

@@ -1,5 +1,6 @@
 tqdm
 openpyxl
+numpy
 pandas
 matplotlib
 seaborn
