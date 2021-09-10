@@ -1,5 +1,6 @@
 import datetime as dt
 
+import numpy as np
 import pandas as pd
 
 
@@ -31,4 +32,25 @@ def investment_type_profit(df: pd.DataFrame):
     ).round(2)
     # делаем читаемый вид
     agg_types.index = agg_types.index.rename('Type')
-    return agg_types
+    return profit_by_type_date, agg_types
+
+
+def correlation_type(type_profit_by_date):
+    pivot_profit = type_profit_by_date.pivot(
+        index='date',
+        columns='investemnt_object_type',
+        values='profit')
+    pivot_profit.columns = pivot_profit.columns.values
+    corr_matrix = pivot_profit.corr()
+    mask = np.zeros_like(corr_matrix, dtype=bool)
+    mask[np.triu_indices_from(mask)] = True
+    corr_matrix[mask] = np.nan
+    # делаем читаемый вид
+    corr_series = corr_matrix.stack().reset_index()
+    corr_series = corr_series.rename(columns={
+        'level_0': 'Type 1',
+        'level_1': 'Type2',
+        0: 'correlation'})
+    corr_series = corr_series.sort_values(by='correlation', ascending=False)
+    return corr_series
+
