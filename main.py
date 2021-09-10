@@ -1,4 +1,4 @@
-from tinvest_analysis.analysis import parse_broker_operations, parse_financial_quote, input_choosing_accounts, \
+from tinvest_analysis.processing import parse_broker_operations, parse_financial_quote, input_choosing_accounts, \
     load_operations, load_financial_quotes, merge_quotes_and_operations, calculate_profit
 from tinvest_analysis.charts import plot_profit_all_time
 
