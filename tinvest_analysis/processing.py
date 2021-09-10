@@ -8,6 +8,18 @@ from tinvest_analysis.loaders.tinkoff import Tinkoff
 from tinvest_analysis.utils.fs import TINKOFF_DIR, HISTORY_QUOTE_DIR
 
 
+SPLIT_OPERATIONS_MUL = [
+    'count',
+    'cum_count'
+]
+
+
+SPLIT_OPERATIONS_DIV = [
+    'unit_price',
+    'avg_price'
+]
+
+
 def parse_broker_operations(token: str):
     client = Tinkoff(token=token)
     accounts = client.get_broker_accounts()
@@ -39,7 +51,7 @@ def input_choosing_accounts(accounts):
     return accounts[input_index - 1]
 
 
-def load_operations(account_type):
+def load_operations(account_type, splits):
     operations_path = TINKOFF_DIR / account_type / 'operations.csv'
     operations = pd.read_csv(operations_path, parse_dates=['dt'])
     operations = operations[operations['operation_type'].isin(['buy', 'sell', 'buy_card'])]
@@ -56,6 +68,11 @@ def load_operations(account_type):
     # средняя цена бумаг в портфеле
     operations['avg_price'] = operations['cum_spent'] / operations['cum_count']
     operations['avg_price'] = operations.apply(lambda x: 0 if x['cum_count'] == 0 else x['avg_price'], axis=1)
+    # обработка на случай сплита акций
+    for split in splits:
+        mask = operations['isin'] == split['isin']
+        operations.loc[mask, SPLIT_OPERATIONS_MUL] = operations.loc[mask, SPLIT_OPERATIONS_MUL].mul(split['ratio'])
+        operations.loc[mask, SPLIT_OPERATIONS_DIV] = operations.loc[mask, SPLIT_OPERATIONS_DIV].div(split['ratio'])
     return operations
 
 

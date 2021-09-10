@@ -4,6 +4,15 @@ from tinvest_analysis.processing import parse_broker_operations, parse_financial
 from tinvest_analysis.charts import plot_profit_all_time
 from tinvest_analysis.utils.date import last_available_date
 
+
+splits = [
+    {
+        'isin': 'IE00BD3QJN10',
+        'ratio': 100
+    }
+]
+
+
 if __name__ == '__main__':
     token = "input your token here"
     last_date = last_available_date()
@@ -12,7 +21,7 @@ if __name__ == '__main__':
     selected_account = input_choosing_accounts(accounts)
     parse_financial_quote(selected_account)
 
-    operations = load_operations(selected_account)
+    operations = load_operations(selected_account, splits)
     quotes = load_financial_quotes(date_to=last_date)
     df = merge_quotes_and_operations(quotes, operations)
     df = calculate_profit(df)
