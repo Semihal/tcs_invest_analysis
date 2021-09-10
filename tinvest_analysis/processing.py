@@ -1,3 +1,5 @@
+import datetime as dt
+
 import numpy as np
 import pandas as pd
 
@@ -57,7 +59,7 @@ def load_operations(account_type):
     return operations
 
 
-def load_financial_quotes():
+def load_financial_quotes(date_to: dt.date):
     quotes = []
     for path in HISTORY_QUOTE_DIR.iterdir():
         if not path.suffix == '.csv':
@@ -70,6 +72,8 @@ def load_financial_quotes():
         df['date'] = df['date'].dt.date
         quotes.append(df)
     quotes = pd.concat(quotes, axis=0)
+    # оставляем данные только до вчерашнего дня (не все бумаги можно получить на "сегодня")
+    quotes = quotes[quotes['date'] <= date_to]
     return quotes
 
 
