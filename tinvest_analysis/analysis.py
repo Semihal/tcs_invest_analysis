@@ -54,3 +54,18 @@ def correlation_type_profit(type_profit_by_date):
     corr_series = corr_series.sort_values(by='correlation', ascending=False)
     return corr_series
 
+
+def profit_by_ticker(df, last_date: dt.date):
+    df = df.copy()
+    mask = (df['date'] == last_date) & (df['cum_count'] > 0)
+    active_tickers = df.loc[mask, 'ticker'].unique()
+    df = df[df['ticker'].isin(active_tickers)]
+    agg_profit_by_ticker = df.groupby('ticker').agg(
+        cnt=('cum_count', 'last'),
+        avg_price=('avg_price', 'last'),
+        min_profit=('profit_percent', 'min'),
+        max_profit=('profit_percent', 'max'),
+        last_profit=('profit_percent', 'last'),
+        days=('date', lambda x: x.max() - x.min())
+    ).sort_values(by='max_profit', ascending=False)
+    return agg_profit_by_ticker

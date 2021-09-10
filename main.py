@@ -1,4 +1,5 @@
-from tinvest_analysis.analysis import investment_type_ration, investment_type_profit, correlation_type_profit
+from tinvest_analysis.analysis import investment_type_ration, investment_type_profit, correlation_type_profit, \
+    profit_by_ticker
 from tinvest_analysis.processing import parse_broker_operations, parse_financial_quote, input_choosing_accounts, \
     load_operations, load_financial_quotes, merge_quotes_and_operations, calculate_profit
 from tinvest_analysis.charts import plot_profit_all_time
@@ -34,6 +35,9 @@ if __name__ == '__main__':
     print()
     corr_type_profit = correlation_type_profit(profit_by_type_date)
     print('Корреляция прибыли по типам активов:', corr_type_profit, sep='\n')
+    print()
+    profit_by_ticker_agg = profit_by_ticker(df, last_date)
+    print('Прибыли текущих активов:', profit_by_ticker_agg, sep='\n')
 
     profit_by_date_chart = plot_profit_all_time(df, offset_days=5)
     profit_by_date_chart.savefig('artifacts/all_profit.png')
