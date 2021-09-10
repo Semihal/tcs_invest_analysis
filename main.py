@@ -8,6 +8,10 @@ if __name__ == '__main__':
     token = "input your token here"
     last_date = last_available_date()
 
+    accounts = parse_broker_operations(token)
+    selected_account = input_choosing_accounts(accounts)
+    parse_financial_quote(selected_account)
+
     operations = load_operations(selected_account)
     quotes = load_financial_quotes(date_to=last_date)
     df = merge_quotes_and_operations(quotes, operations)
