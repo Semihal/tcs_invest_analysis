@@ -1,0 +1,9 @@
+tinkoff:
+  token: "set your token here"
+
+stock_splits:
+  - isin: "IE00BD3QJN10"
+    ratio: 100
+
+charts:
+  offset_days: 5
