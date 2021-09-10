@@ -35,7 +35,7 @@ def investment_type_profit(df: pd.DataFrame):
     return profit_by_type_date, agg_types
 
 
-def correlation_type(type_profit_by_date):
+def correlation_type_profit(type_profit_by_date):
     pivot_profit = type_profit_by_date.pivot(
         index='date',
         columns='investemnt_object_type',
@@ -49,7 +49,7 @@ def correlation_type(type_profit_by_date):
     corr_series = corr_matrix.stack().reset_index()
     corr_series = corr_series.rename(columns={
         'level_0': 'Type 1',
-        'level_1': 'Type2',
+        'level_1': 'Type 2',
         0: 'correlation'})
     corr_series = corr_series.sort_values(by='correlation', ascending=False)
     return corr_series
