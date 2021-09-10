@@ -1,3 +1,7 @@
+from pathlib import Path
+
+import yaml
+
 from tinvest_analysis.analysis import investment_type_ration, investment_type_profit, correlation_type_profit, \
     profit_by_ticker
 from tinvest_analysis.processing import parse_broker_operations, parse_financial_quote, input_choosing_accounts, \
@@ -6,16 +10,15 @@ from tinvest_analysis.charts import plot_profit_all_time
 from tinvest_analysis.utils.date import last_available_date
 
 
-splits = [
-    {
-        'isin': 'IE00BD3QJN10',
-        'ratio': 100
-    }
-]
+def read_config(path):
+    with path.open('r') as file:
+        return yaml.safe_load(file)
 
 
-if __name__ == '__main__':
-    token = "input your token here"
+def main(config):
+    token = config['tinkoff']['token']
+    splits = config['stock_splits']
+    chart_offset_days = config['charts']['offset_days']
     last_date = last_available_date()
 
     accounts = parse_broker_operations(token)
@@ -39,5 +42,13 @@ if __name__ == '__main__':
     profit_by_ticker_agg = profit_by_ticker(df, last_date)
     print('Прибыли текущих активов:', profit_by_ticker_agg, sep='\n')
 
-    profit_by_date_chart = plot_profit_all_time(df, offset_days=5)
+    profit_by_date_chart = plot_profit_all_time(df, offset_days=chart_offset_days)
     profit_by_date_chart.savefig('artifacts/all_profit.png')
+
+
+if __name__ == '__main__':
+    path_config = Path('config.yaml')
+    if not path_config.exists():
+        raise FileNotFoundError('Файл config.yaml не найден!')
+    config = read_config(path_config)
+    main(config)
