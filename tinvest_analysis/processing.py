@@ -44,7 +44,7 @@ def parse_financial_quote(account_type):
 
 
 def input_choosing_accounts(accounts):
-    print('Вебери интересующий тебя счет:')
+    print('Выбери интересующий тебя счет:')
     for i, account_type in enumerate(accounts, start=1):
         print(f'[{i}] {account_type}')
     input_index = int(input())
