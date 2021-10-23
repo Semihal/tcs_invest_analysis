@@ -64,13 +64,21 @@ def input_choosing_accounts(accounts):
     return accounts[input_index - 1]
 
 
-def load_operations(account_type, splits):
+def load_operations(account_type, splits, currency_rates):
     operations_path = TINKOFF_DIR / account_type / 'operations.csv'
     operations = pd.read_csv(operations_path, parse_dates=['dt'])
     # откидываем все операции, что происходили сегодня
-    operations = operations[operations['dt'].dt.date < dt.date.today()]
+    operations['date'] = operations['dt'].dt.date
+    operations = operations[operations['date'] < dt.date.today()]
     # оставляем только операции покупок и продаж
     operations = operations[operations['operation_type'].isin(['buy', 'sell', 'buy_card'])]
+    # преобразуем все курсы валют к рублю
+    mul_columns = ['total_price', 'unit_price', 'commission']
+    operations = operations.merge(currency_rates, on=['date', 'currency'], how='left')
+    mask = operations['close_price'].notna()
+    operations.loc[mask, mul_columns] = operations.loc[mask, mul_columns]\
+        .mul(operations.loc[mask, 'close_price'].astype('float'), axis=0)
+    operations = operations.drop(columns=['close_price'])
     # преобразуем buy_card в buy
     type_map_dict = dict({x: x for x in operations['operation_type'].unique()}, buy_card='buy')
     operations['operation_type'] = operations['operation_type'].map(type_map_dict)

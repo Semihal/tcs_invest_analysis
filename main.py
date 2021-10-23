@@ -7,7 +7,7 @@ import yaml
 from tinvest_analysis.analysis import investment_type_ration, investment_type_profit, correlation_type_profit, \
     profit_by_ticker
 from tinvest_analysis.processing import parse_broker_operations, parse_financial_quote, input_choosing_accounts, \
-    load_operations, load_financial_quotes, enrichment_ticker_prices
+    load_operations, load_financial_quotes, enrichment_ticker_prices, parse_currency_quote
 from tinvest_analysis.charts import plot_profit_all_time
 
 
@@ -77,12 +77,11 @@ def main(config):
     selected_account = input_choosing_accounts(accounts)
     parse_financial_quote(selected_account)
 
-    operations = load_operations(selected_account, splits)
-    # TODO: необходимо учитывать бумаги в валюте (не рублях)
-    # TODO: необходимо учитывать наличие валютных запасов (USD, EUR, etc.)
+    quotes = load_financial_quotes()
+    currency_rates = parse_currency_quote()
+    operations = load_operations(selected_account, splits, currency_rates)
     briefcase_ticker_price = ts_briefcase_ticker_prices(operations)
 
-    quotes = load_financial_quotes()
     briefcase_ticker_price = enrichment_ticker_prices(briefcase_ticker_price, quotes)
 
     type_ration = investment_type_ration(briefcase_ticker_price)
