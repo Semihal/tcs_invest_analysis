@@ -5,6 +5,7 @@ import pandas as pd
 from cbrf.models import DynamicCurrenciesRates
 
 
+# see: https://www.cbr.ru/scripts/XML_val.asp?d=0
 class CurrencyID(Enum):
     USD = "R01235"
     EUR = "R01239"
@@ -17,9 +18,6 @@ class CurrencyID(Enum):
 
 
 def currency_history_quotes(name: str, from_date: dt.date, to_date: dt.date):
-    # USD: R01235
-    # EUR: R01239
-    # see: https://www.cbr.ru/scripts/XML_val.asp?d=0
     # делаем запрос к ЦБРФ для получения исторических данных
     from_date = dt.datetime(from_date.year, from_date.month, from_date.day)
     to_date = dt.datetime(to_date.year, to_date.month, to_date.day)
