@@ -2,8 +2,15 @@ tinkoff:
   token: "set your token here"
 
 stock_splits:
-  - isin: "IE00BD3QJN10"
+  - isin: "IE00BD3QJN10"  # FXDE
+    date: 2021-09-09
     ratio: 100
-
-charts:
-  offset_days: 5
+  - isin: "RU000A1000F9"  # SBGB
+    date: 2021-06-07
+    ratio: 100
+  - isin: "IE00BD3QHZ91"  # FXUS
+    ratio: 100
+    date: 2021-10-07
+  - isin: "IE00BQ1Y6480"  # FXRL
+    ratio: 100
+    date: 2021-10-07

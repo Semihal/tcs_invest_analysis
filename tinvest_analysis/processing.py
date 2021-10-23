@@ -1,6 +1,5 @@
 import datetime as dt
 
-import numpy as np
 import pandas as pd
 
 from tinvest_analysis.loaders.investfound import InvestFounds
@@ -8,19 +7,10 @@ from tinvest_analysis.loaders.tinkoff import Tinkoff
 from tinvest_analysis.utils.fs import TINKOFF_DIR, HISTORY_QUOTE_DIR
 
 
-SPLIT_OPERATIONS_MUL = [
-    'count',
-    'cum_count'
-]
-
-
-SPLIT_OPERATIONS_DIV = [
-    'unit_price',
-    'avg_price'
-]
-
-
 def parse_broker_operations(token: str):
+    """
+    Получение списка операций в портфеле от Тинькофф.
+    """
     client = Tinkoff(token=token)
     accounts = client.get_broker_accounts()
     for account_type, account_id in accounts.items():
@@ -34,6 +24,9 @@ def parse_broker_operations(token: str):
 
 
 def parse_financial_quote(account_type):
+    """
+    Парсинг котировок ценных бумаг с сайта InvestFounds.
+    """
     operations_path = TINKOFF_DIR / account_type / 'operations.csv'
     operations = pd.read_csv(operations_path)
     isin_list = operations['isin'].dropna().unique()
@@ -44,6 +37,9 @@ def parse_financial_quote(account_type):
 
 
 def input_choosing_accounts(accounts):
+    """
+    Выбор портфеля, для которого будет производиться анализ.
+    """
     print('Выбери интересующий тебя счет:')
     for i, account_type in enumerate(accounts, start=1):
         print(f'[{i}] {account_type}')
@@ -54,29 +50,31 @@ def input_choosing_accounts(accounts):
 def load_operations(account_type, splits):
     operations_path = TINKOFF_DIR / account_type / 'operations.csv'
     operations = pd.read_csv(operations_path, parse_dates=['dt'])
+    # откидываем все операции, что происходили сегодня
+    operations = operations[operations['dt'].dt.date < dt.date.today()]
+    # оставляем только операции покупок и продаж
     operations = operations[operations['operation_type'].isin(['buy', 'sell', 'buy_card'])]
-    # превращаем buy_card в buy
+    # преобразуем buy_card в buy
     type_map_dict = dict({x: x for x in operations['operation_type'].unique()}, buy_card='buy')
     operations['operation_type'] = operations['operation_type'].map(type_map_dict)
-    # если count < 0 - то мы продали акцию, если count > 0 - купили
-    operations['count'] = operations.apply(lambda x: x['count'] if x['operation_type'] == 'buy' else -x['count'], axis=1)
-    # считаем итоговое количество оставшихся штук. этого актива на момент времени dt
-    operations['cum_count'] = operations.groupby('ticker')['count'].cumsum()
-    # кол-во потраченых денег на текущее кол-во активов
-    operations['cum_spent'] = operations.groupby('ticker')['total_price'].apply(lambda x: (-x).cumsum())
-    operations['cum_spent'] = operations.apply(lambda x: 0 if x['cum_count'] == 0 else x['cum_spent'], axis=1)
-    # средняя цена бумаг в портфеле
-    operations['avg_price'] = operations['cum_spent'] / operations['cum_count']
-    operations['avg_price'] = operations.apply(lambda x: 0 if x['cum_count'] == 0 else x['avg_price'], axis=1)
-    # обработка на случай сплита акций
-    for split in splits:
-        mask = operations['isin'] == split['isin']
-        operations.loc[mask, SPLIT_OPERATIONS_MUL] = operations.loc[mask, SPLIT_OPERATIONS_MUL].mul(split['ratio'])
-        operations.loc[mask, SPLIT_OPERATIONS_DIV] = operations.loc[mask, SPLIT_OPERATIONS_DIV].div(split['ratio'])
+    # удаление бесполезных колонок
+    operations = operations.drop(columns=['id'])
+    # если бумага была продана, то поменяем ее count на отрицательный
+    sell_mask = operations['operation_type'] == 'sell'
+    operations.loc[sell_mask, 'count'] *= -1
+
+    # обработка сплита акций
+    for split_event in splits:
+        # маска для операций, проведенных ДО сплита
+        mask = \
+            (operations['isin'] == split_event['isin']) \
+            & (operations['dt'].dt.date <= split_event['date'])
+        operations.loc[mask, 'count'] = operations.loc[mask, 'count'].mul(split_event['ratio'])
+        operations.loc[mask, 'unit_price'] = operations.loc[mask, 'unit_price'].div(split_event['ratio'])
     return operations
 
 
-def load_financial_quotes(date_to: dt.date):
+def load_financial_quotes():
     quotes = []
     for path in HISTORY_QUOTE_DIR.iterdir():
         if not path.suffix == '.csv':
@@ -87,42 +85,30 @@ def load_financial_quotes(date_to: dt.date):
               .reset_index(drop=True)
               .assign(isin=path.stem))
         df['date'] = df['date'].dt.date
+        # откидываем все котировки, что известны на текущий день
+        df = df[df['date'] < dt.date.today()]
         quotes.append(df)
     quotes = pd.concat(quotes, axis=0)
-    # оставляем данные только до вчерашнего дня (не все бумаги можно получить на "сегодня")
-    quotes = quotes[quotes['date'] <= date_to]
     return quotes
 
 
-def merge_quotes_and_operations(quotes: pd.DataFrame, operations: pd.DataFrame):
-    # подготавливаем operations
-    operations = operations.copy()
-    operations['date'] = operations['dt'].dt.date
-    operations = operations.groupby(['isin', 'date']).last()
-    # подготавливаем quotes
-    quotes = quotes.merge(operations, on=['date', 'isin'], how='left')
-    quotes = quotes.sort_values(by='date')
-    # заполняем пропуски предыдущими значениями
-    ffill_columns = ['ticker', 'cum_count', 'cum_spent', 'avg_price']
-    quotes[ffill_columns] = quotes.groupby('isin').ffill()[ffill_columns]
-    # удаление лишних колонок
-    quotes = quotes.drop(columns=[
-        'id',
-        'dt',
-        'figi',
-        'isin',
-        'instrument_type',
-        # 'total_price',
-        'unit_price',
-    ])
-    # оставляем записи начиная с даты покупки
-    quotes = quotes.dropna(subset=ffill_columns, how='any')
-    # проставляем avg_price как none для уже полностью проданых бумаг
-    quotes['avg_price'] = quotes['avg_price'].apply(lambda x: np.nan if x == 0 else x)
-    return quotes
+def enrichment_ticker_prices(briefcase_ticker_price: pd.DataFrame, quotes: pd.DataFrame):
+    # добавляем котировки акций к портфелю ценных бумаг
+    briefcase_ticker_price = pd.merge(
+        briefcase_ticker_price, quotes,
+        left_on=['date', 'isin'],
+        right_on=['date', 'isin'],
+        how='left'
+    ).sort_values(by='date')
+    # заполняем пропуски в зависимости от ценной бумаги
+    ffill_columns = ['close_price', 'investemnt_object_type', 'geography', 'currency']
+    briefcase_ticker_price[ffill_columns] = briefcase_ticker_price.groupby('isin').ffill()[ffill_columns]
+    # считаем характеристики доходности
+    briefcase_ticker_price = calculate_profit(briefcase_ticker_price)
+    return briefcase_ticker_price
 
 
 def calculate_profit(df: pd.DataFrame):
-    df['profit_money'] = df['cum_count'] * df['close_price'] - df['cum_spent']
-    df['profit_percent'] = 100 * df['profit_money'] / df['cum_spent']
+    df['profit_money'] = df['quantity'] * df['close_price'] - df['buy_price']
+    df['profit_percent'] = 100 * df['profit_money'] / df['buy_price']
     return df

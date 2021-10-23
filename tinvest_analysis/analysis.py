@@ -4,21 +4,26 @@ import numpy as np
 import pandas as pd
 
 
-def investment_type_ration(df: pd.DataFrame, last_date: dt.date):
-    last_day = df[df['date'] == last_date]
-    spent_to_today = last_day['cum_spent'].sum()
-    spent__to_today_by_type = last_day.groupby('investemnt_object_type')['cum_spent'].sum()
-    spent_by_type_percent: pd.Series = (100 * spent__to_today_by_type / spent_to_today).round(2)
+def investment_type_ration(df: pd.DataFrame):
+    last_day = df[df['date'] == df['date'].max()]
+    # стоимость портфеля на конец последнего доспуного дня
+    price_briefcase = last_day['buy_price'].sum()
+    # доля ценных бумаг по каждому типу
+    today_by_type = last_day.groupby('investemnt_object_type')['buy_price']\
+        .sum()\
+        .div(price_briefcase)\
+        .mul(100)\
+        .round(2)
     # делаем читаемый вид
-    spent_by_type_percent.index = spent_by_type_percent.index.rename('Type')
-    spent_by_type_percent = spent_by_type_percent.rename('percent')
+    today_by_type.index = today_by_type.index.rename('Type')
+    spent_by_type_percent = today_by_type.rename('percent')
     return spent_by_type_percent
 
 
 def investment_type_profit(df: pd.DataFrame):
     group_by_type_and_date = df.groupby(['date', 'investemnt_object_type'])
     sum_profit_by_date = group_by_type_and_date['profit_money'].sum()
-    sum_spent_by_date = group_by_type_and_date['cum_spent'].sum()
+    sum_spent_by_date = group_by_type_and_date['buy_price'].sum()
     mask = (sum_spent_by_date > 0) & sum_spent_by_date.notna()
     profit_by_type_date = (sum_profit_by_date[mask] / sum_spent_by_date[mask])\
         .mul(100)\
@@ -55,17 +60,17 @@ def correlation_type_profit(type_profit_by_date):
     return corr_series
 
 
-def profit_by_ticker(df, last_date: dt.date):
-    df = df.copy()
-    mask = (df['date'] == last_date) & (df['cum_count'] > 0)
-    active_tickers = df.loc[mask, 'ticker'].unique()
-    df = df[df['ticker'].isin(active_tickers)]
-    agg_profit_by_ticker = df.groupby('ticker').agg(
-        cnt=('cum_count', 'last'),
+def profit_by_ticker(df):
+    df = df.sort_values(by='date')
+    last_day = df['date'].max()
+    active_tickers = df.loc[df['date'] == last_day, 'ticker'].unique()
+    agg_profit_by_ticker = df[df['ticker'].isin(active_tickers)].groupby('ticker').agg(
+        cnt=('quantity', 'last'),
+        buy_price=('buy_price', 'last'),
         avg_price=('avg_price', 'last'),
         min_profit=('profit_percent', 'min'),
         max_profit=('profit_percent', 'max'),
         last_profit=('profit_percent', 'last'),
         days=('date', lambda x: x.max() - x.min())
-    ).sort_values(by='max_profit', ascending=False)
+    ).sort_values(by='buy_price', ascending=False)
     return agg_profit_by_ticker
