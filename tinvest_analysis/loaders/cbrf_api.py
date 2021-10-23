@@ -14,7 +14,7 @@ def currency_history_quotes(code: str, from_date: dt.date, to_date: dt.date):
     history_rates = DynamicCurrenciesRates(from_date, to_date, code)
     # формируем и возвращаем результат
     rate_dates = [rate.date for rate in history_rates.rates]
-    rate_values = [rate.value for rate in history_rates.rates]
+    rate_values = [rate.value / rate.denomination for rate in history_rates.rates]
     currencies = pd.Series(rate_values, index=rate_dates, name='currency')
     return currencies
 
