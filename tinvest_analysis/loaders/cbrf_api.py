@@ -26,7 +26,16 @@ def currency_history_quotes(name: str, from_date: dt.date, to_date: dt.date):
     # формируем и возвращаем результат
     rate_dates = [rate.date for rate in history_rates.rates]
     rate_values = [rate.value / rate.denomination for rate in history_rates.rates]
-    currencies = pd.Series(rate_values, index=rate_dates, name='currency')
+    currencies_cbrf = pd.Series(rate_values, index=rate_dates, name='close_price').astype('float')
+    # заполняем пропущенные даты
+    date_index = pd.date_range(start=from_date, end=to_date)
+    currencies = pd.merge(
+        pd.DataFrame(data=date_index, columns=['date']),
+        currencies_cbrf.to_frame(),
+        left_on='date',
+        right_index=True,
+        how='left'
+    ).ffill().dropna()
     return currencies
 
 
