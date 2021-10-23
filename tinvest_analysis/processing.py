@@ -2,9 +2,10 @@ import datetime as dt
 
 import pandas as pd
 
+from tinvest_analysis.loaders.cbrf_api import CurrencyID, currency_history_quotes
 from tinvest_analysis.loaders.investfound import InvestFounds
 from tinvest_analysis.loaders.tinkoff import Tinkoff
-from tinvest_analysis.utils.fs import TINKOFF_DIR, HISTORY_QUOTE_DIR
+from tinvest_analysis.utils.fs import TINKOFF_DIR, HISTORY_QUOTE_DIR, HISTORY_CURRENCY_DIR
 
 
 def parse_broker_operations(token: str):
@@ -34,6 +35,22 @@ def parse_financial_quote(account_type):
     client = InvestFounds(isin_list)
     for isin, asset in client.assets.items():
         asset.chartData.to_csv(HISTORY_QUOTE_DIR / f'{isin}.csv', header=True, index=False)
+
+
+def parse_currency_quote():
+    date_from = dt.date(2015, 1, 1)
+    date_to = dt.date.today()
+    rates = []
+    for currency in CurrencyID:
+        history_data = currency_history_quotes(currency.name, date_from, date_to)\
+            .assign(currency=currency.name)
+        file_path = HISTORY_CURRENCY_DIR / f'{currency.name}.csv'
+        history_data.to_csv(file_path, header=True, index=False)
+        rates.append(history_data)
+    currency_rates = pd.concat(rates).reset_index(drop=True)
+    currency_rates['date'] = currency_rates['date'].dt.date
+    return currency_rates
+
 
 
 def input_choosing_accounts(accounts):
