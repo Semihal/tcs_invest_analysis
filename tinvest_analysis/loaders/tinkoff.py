@@ -51,7 +51,6 @@ class Tinkoff:
             'status',
             'trades',
             'quantity',
-            'currency',
             'is_margin_call'
         ]
         rename_dict = {
@@ -63,7 +62,6 @@ class Tinkoff:
         }
         operations_filter = (
                 (df['status'] == OperationStatus.done)
-                & (df['currency'] == Currency.rub)
                 & (df['instrument_type'].notna())
                 & (df['operation_type'] != OperationTypeWithCommission.broker_commission)
         )
